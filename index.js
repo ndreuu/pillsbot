@@ -5,9 +5,20 @@ const {
 
 require('dotenv').config()
 
+const { Sequelize } = require('sequelize')
+
 const text = require('./const')
 
 const bot = new Telegraf(process.env.BOT_TOKEN)
+
+const sequelize = new Sequelize('postgres://dpmjuqvjvczawc:6aac55dd6a6ce7c5fa568302963b97df4d8d20e501151ec46d09fb0c5d2c3933@ec2-18-203-64-130.eu-west-1.compute.amazonaws.com:5432/d4ms0rdbf8h9kb') 
+
+try {
+    await sequelize.authenticate()
+    console.log('Соединение с БД было успешно установлено')
+  } catch (e) {
+    console.log('Невозможно выполнить подключение к БД: ', e)
+  }
 
 const names = ['новопассит', 'ношпа']
 
@@ -53,7 +64,7 @@ bot.help(async (ctx) => await ctx.reply(text.commands))
 
 bot.command('pills', drawList)
 
-names.forEach((_, index) => {
+names.forEach(async (_, index) => {
     bot.action('btn_1' + `${index}`, async (ctx) => {
         try {
             await ctx.answerCbQuery()
