@@ -40,8 +40,12 @@ const addName = (arr, name) => {
   arr.push(name)
 }
 
-bot.command('Rips', (ctx) => {
-    ctx.replyWithHTML('<b>Спсибо за минет 💜</b>')
+bot.command('Rips',async (ctx) => {
+    await ctx.replyWithHTML('<b>Спасибо за минет 💜</b>')
+})
+
+bot.command('Artem', async (ctx) => {
+    await ctx.replyWithHTML('<b>Артём — бычок,\nРваный башмачок,\nНа мусорке валяется,\nДа ещё ругается!\n\nРаунд</b>')
 })
 
 bot.start(async (ctx) => await ctx.reply('Hey!'))
