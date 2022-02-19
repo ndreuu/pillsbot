@@ -36,9 +36,10 @@ const sequelize = new Sequelize(
 
 // })
 
-const Abra = sequelize.define('abra', {
+const Abra = sequelize.define('undra', {
     id: { type: DataTypes.INTEGER, primaryKey: true, unique: true, autoIncrement: true },
     chatId: { type: DataTypes.INTEGER, unique: true },
+    name: { type: DataTypes.STRING }
 })
 
 const tst = async () => {
@@ -46,12 +47,64 @@ const tst = async () => {
         await sequelize.authenticate()
         await sequelize.sync()
         console.log('DB connected')
+
+        bot.command('test', async (ctx) => {
+            const chatId = ctx.message.chat.id
+            const user = await Abra.findOne({ chatId: chatId, name: ctx.message.from.first_name })
+            await ctx.reply(`${user.name}` + ' ' + `${user.chatId}`)
+        })
+
+        bot.command('Rips', async (ctx) => {
+            await ctx.replyWithHTML('<b>Спасибо за минет 💜</b>')
+        })
+
+        bot.command('Artem', async (ctx) => {
+            await ctx.replyWithHTML('<b>Артём — бычок,\nРваный башмачок,\nНа мусорке валяется,\nДа ещё ругается!\n\nРаунд</b>')
+        })
+
+        bot.start(async (ctx) => {
+            const chatId = ctx.message.chat.id
+            try {
+                await ctx.reply('Hey! ' + ctx.message.from.first_name + ' ' + ctx.message.from.id)
+                console.log("::::::::", chatId)
+                await Abra.create({ chatId: chatId, name: ctx.message.from.first_name })
+                // await Abra.commit
+            } catch (e) {
+                console.error(e)
+            }
+        })
+        bot.help(async (ctx) => await ctx.reply(text.commands))
+
+        bot.command('pills', drawList)
+
+        names.forEach(async (_, index) => {
+            bot.action('btn_1' + `${index}`, async (ctx) => {
+                try {
+                    await ctx.answerCbQuery()
+                    rmName(names, index)
+                    drawList(ctx)
+                } catch (e) {
+                    console.error(e)
+                }
+            })
+        })
+
+        bot.action('new', async (ctx) => {
+            try {
+                await ctx.answerCbQuery()
+                addName(names, `${'~'}`)
+                drawList(ctx)
+            } catch (e) {
+                console.error(e)
+            }
+        })
+
     } catch (e) {
         console.error('Failed connection to bd', e)
     }
 }
+
 tst()
-// client.connect();
 
 const names = ['новопассит', 'ношпа']
 
@@ -84,56 +137,8 @@ const addName = (arr, name) => {
     arr.push(name)
 }
 
-bot.command('Rips', async (ctx) => {
-    await ctx.replyWithHTML('<b>Спасибо за минет 💜</b>')
-})
 
 
-bot.command('test', async (ctx) => {
-    const chatId = ctx.message.chat.id
-    const user = await Abra.findOne({chatId})
-    await ctx.reply(`${user.chatId}`)
-})
-
-bot.command('Artem', async (ctx) => {
-    await ctx.replyWithHTML('<b>Артём — бычок,\nРваный башмачок,\nНа мусорке валяется,\nДа ещё ругается!\n\nРаунд</b>')
-})  
-
-bot.start(async (ctx) => {
-    const chatId = ctx.message.chat.id
-    try {
-        await ctx.reply('Hey!')
-        console.log("::::::::", chatId)
-        await Abra.create({ chatId })
-    } catch (e) {
-        console.error(e)
-    }
-})
-bot.help(async (ctx) => await ctx.reply(text.commands))
-
-bot.command('pills', drawList)
-
-names.forEach(async (_, index) => {
-    bot.action('btn_1' + `${index}`, async (ctx) => {
-        try {
-            await ctx.answerCbQuery()
-            rmName(names, index)
-            drawList(ctx)
-        } catch (e) {
-            console.error(e)
-        }
-    })
-})
-
-bot.action('new', async (ctx) => {
-    try {
-        await ctx.answerCbQuery()
-        addName(names, `${'~'}`)
-        drawList(ctx)
-    } catch (e) {
-        console.error(e)
-    }
-})
 
 bot.launch()
 
