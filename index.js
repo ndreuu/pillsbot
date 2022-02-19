@@ -30,10 +30,15 @@ const sequelize = new Sequelize(
         }
     });
 
-const TEST = sequelize.define('test', {
+// const TEST = sequelize.define('test', {
+//     id: { type: DataTypes.INTEGER, primaryKey: true, unique: true, autoIncrement: true },
+//     chatId: { type: DataTypes.INTEGER, unique: true },
+
+// })
+
+const Abra = sequelize.define('abra', {
     id: { type: DataTypes.INTEGER, primaryKey: true, unique: true, autoIncrement: true },
     chatId: { type: DataTypes.INTEGER, unique: true },
-
 })
 
 const tst = async () => {
@@ -86,8 +91,7 @@ bot.command('Rips', async (ctx) => {
 
 bot.command('test', async (ctx) => {
     const chatId = ctx.message.chat.id
-
-    const user = await TEST.findOne({chatId})
+    const user = await Abra.findOne({chatId})
     await ctx.reply(`${user.chatId}`)
 })
 
@@ -100,7 +104,7 @@ bot.start(async (ctx) => {
     try {
         await ctx.reply('Hey!')
         console.log("::::::::", chatId)
-        await TEST.create({ chatId })
+        await Abra.create({ chatId })
     } catch (e) {
         console.error(e)
     }
