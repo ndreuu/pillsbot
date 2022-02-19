@@ -50,7 +50,12 @@ const tst = async () => {
 
         bot.command('test', async (ctx) => {
             const chatId = ctx.message.chat.id
-            const user = await Abra.findOne({ chatId: chatId, name: ctx.message.from.first_name })
+            const user = await Abra.findOne({ 
+                where: {
+                    chatId: chatId, 
+                    name: ctx.message.from.first_name     
+                }
+            })
             await ctx.reply(`${user.name}` + ' ' + `${user.chatId}`)
         })
 
