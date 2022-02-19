@@ -5,27 +5,55 @@ const {
 
 require('dotenv').config()
 
-const { Sequelize } = require('sequelize')
+const { Sequelize, DataTypes } = require('sequelize')
 
 const text = require('./const')
 
 const bot = new Telegraf(process.env.BOT_TOKEN)
 
-const sequelize = new Sequelize('postgres://dpmjuqvjvczawc:6aac55dd6a6ce7c5fa568302963b97df4d8d20e501151ec46d09fb0c5d2c3933@ec2-18-203-64-130.eu-west-1.compute.amazonaws.com:5432/d4ms0rdbf8h9kb') 
+const sequelize = new Sequelize(
+    // "d4ms0rdbf8h9kb", 
+    // "dpmjuqvjvczawc", 
+    // "6aac55dd6a6ce7c5fa568302963b97df4d8d20e501151ec46d09fb0c5d2c3933",
+    {
+        host: "ec2-18-203-64-130.eu-west-1.compute.amazonaws.com",
+        database: "d4ms0rdbf8h9kb",
+        username: "dpmjuqvjvczawc",
+        port: 5432,
+        password: "6aac55dd6a6ce7c5fa568302963b97df4d8d20e501151ec46d09fb0c5d2c3933",
+        dialect: "postgres",
+        dialectOptions: {
+            ssl: {
+                require: true,
+                rejectUnauthorized: false
+            }
+        }
+    });
 
-try {
-    await sequelize.authenticate()
-    console.log('Соединение с БД было успешно установлено')
-  } catch (e) {
-    console.log('Невозможно выполнить подключение к БД: ', e)
-  }
+const TEST = sequelize.define('test', {
+    id: { type: DataTypes.INTEGER, primaryKey: true, unique: true, autoIncrement: true },
+    chatId: { type: DataTypes.INTEGER, unique: true },
+
+})
+
+const tst = async () => {
+    try {
+        await sequelize.authenticate()
+        await sequelize.sync()
+        console.log('DB connected')
+    } catch (e) {
+        console.error('Failed connection to bd', e)
+    }
+}
+tst()
+// client.connect();
 
 const names = ['новопассит', 'ношпа']
 
 const drawList = async (ctx) => {
     try {
         const buttons = names.map((name, index) => [
-            Markup.button.callback(name, 'btn_0' + `${index}`), 
+            Markup.button.callback(name, 'btn_0' + `${index}`),
             Markup.button.callback('🗑️', 'btn_1' + `${index}`)
         ])
         buttons.push([Markup.button.callback('🆕', 'new')])
@@ -45,21 +73,38 @@ const rmName = (arr, i) => {
         j--
     }
     arr.shift()
-  }
-
-const addName = (arr, name) => {
-  arr.push(name)
 }
 
-bot.command('Rips',async (ctx) => {
+const addName = (arr, name) => {
+    arr.push(name)
+}
+
+bot.command('Rips', async (ctx) => {
     await ctx.replyWithHTML('<b>Спасибо за минет 💜</b>')
+})
+
+
+bot.command('test', async (ctx) => {
+    const chatId = ctx.message.chat.id
+
+    const user = await TEST.findOne({chatId})
+    await ctx.reply(`${user.chatId}`)
 })
 
 bot.command('Artem', async (ctx) => {
     await ctx.replyWithHTML('<b>Артём — бычок,\nРваный башмачок,\nНа мусорке валяется,\nДа ещё ругается!\n\nРаунд</b>')
-})
+})  
 
-bot.start(async (ctx) => await ctx.reply('Hey!'))
+bot.start(async (ctx) => {
+    const chatId = ctx.message.chat.id
+    try {
+        await ctx.reply('Hey!')
+        console.log("::::::::", chatId)
+        await TEST.create({ chatId })
+    } catch (e) {
+        console.error(e)
+    }
+})
 bot.help(async (ctx) => await ctx.reply(text.commands))
 
 bot.command('pills', drawList)
