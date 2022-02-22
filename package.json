@@ -11,7 +11,9 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "cron-job-manager": "^2.2.1",
     "dotenv": "^16.0.0",
+    "node-cron": "^3.0.0",
     "pg": "^8.7.3",
     "pg-hstore": "^2.3.4",
     "sequelize": "^6.16.2",
