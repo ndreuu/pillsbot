@@ -1,4 +1,5 @@
 const {
+    Context,
     Telegraf,
     Markup
 } = require('telegraf')
@@ -38,7 +39,13 @@ const sequelize = new Sequelize(
 
 // })
 
-const names = ['новопассит', 'ношпа']
+// const names = ['новопассит', 'ношпа']
+const names = []
+for (let i = 0; i < 256; i++) {
+    names.push('btn_1' + `${i}`)
+}
+
+const map = {}
 
 const state = {}
 
@@ -46,10 +53,17 @@ const Abra = sequelize.define('tundra', {
     id: { type: DataTypes.INTEGER, primaryKey: true, unique: true, autoIncrement: true },
     chatId: { type: DataTypes.INTEGER, unique: true },
     name: { type: DataTypes.STRING },
-    period: { type: DataTypes.INTEGER, defaultValue: -1 },
-
+    period: { type: DataTypes.INTEGER, defaultValue: -1 }
 })
 
+////////////////////////////
+const Pills = sequelize.define('pills', {
+    id: { type: DataTypes.INTEGER, primaryKey: true, unique: true, autoIncrement: true },
+    by: { type: DataTypes.INTEGER },
+    name: { type: DataTypes.STRING, defaultValue: '' },
+    period: { type: DataTypes.INTEGER, defaultValue: -1 }
+})
+////////////////////////////
 
 
 // const drawList = async (ctx) => {
@@ -67,35 +81,59 @@ const Abra = sequelize.define('tundra', {
 //     }
 // }
 
+const btns = new Array()
+
 const drawList = async (ctx) => {
     // try {
     const chatId = await ctx.message?.chat.id || ctx.update.callback_query.from.id
 
-    console.log(chatId)
-    const user = await Abra.findOne({
-        where: { chatId }
-    })
-    const label = `${user.period}`
-    
-    const buttons = []
+    try {
+        const pills = await Pills.findAll({
+            where: { by: chatId }
+        })
+        pills.forEach((v) => console.log('>>>>> ', v.name))
+        console.log(chatId)
 
-    if (user.period !== -1) {
-        buttons.push([
-            Markup.button.callback(label, '🔵'),
-            Markup.button.callback('🗑️', '🗑️')
+        const buttons = pills.map((pill, index) => [
+            Markup.button.callback(pill.name, 'btn_0' + `${index}`),
+            Markup.button.callback('🗑️', 'btn_1' + `${index}`)
         ])
+
+        if (state.name.length > 0) {
+            buttons.push([Markup.button.callback('➕' + state.name, 'new')])
+        }
+
+        pills.forEach((pill, index) => map['btn_1' + `${index}`] = pill)
+        // state.pillsBtns = pills.map((pill, index) => ({ name: pill.name, indx: index }) )
+
+        await ctx.replyWithHTML('<b>Pill list:</b>', Markup.inlineKeyboard(buttons))
+        // console.log(names)
+    } catch (e) {
+        console.log('AAAAAAAAAAAAAAA')
+        console.error(e)
     }
+
+    // pills.forEach((v) => console.log(v.name))
+    // const user = await Abra.findOne({
+    //     where: { chatId }
+    // })
+    // const label = `${user.period}`
+
+
+    // if (user.period !== -1) {
+    //     buttons.push([
+    //         Markup.button.callback(label, '🔵'),
+    //         Markup.button.callback('🗑️', '🗑️')
+    //     ])
+    // }
 
     // const buttons = names.map((name, index) => [
     //     Markup.button.callback(name, 'btn_0' + `${index}`),
     //     Markup.button.callback('🗑️', 'btn_1' + `${index}`)
     // ])
-    buttons.push([Markup.button.callback('🆕', 'new')])
-
-    await ctx.replyWithHTML('<b>Pill list:</b>', Markup.inlineKeyboard(buttons))
 
 
-///////////////////////////////////////////
+    ///////////////////////////////////////////
     // const personalPeriod = { period: user.name === 'Andrew' ? 10 : 5, name: user.name }
     // const period = '*/' + `${personalPeriod.period}` + ' * * * * *'
     ///////////////////////////////////////////
@@ -108,7 +146,7 @@ const drawList = async (ctx) => {
     //     task.start()
     // }
     ///////////////////////////////////////////
-///////////////////////////////////////////
+    ///////////////////////////////////////////
 
 
 
@@ -119,11 +157,6 @@ const drawList = async (ctx) => {
 }
 
 const tst = async () => {
-
-
-
-
-
     try {
         await sequelize.authenticate()
         await sequelize.sync()
@@ -140,8 +173,6 @@ const tst = async () => {
             await ctx.reply(`${user.name}`)
         })
 
-
-
         bot.command('Rips', async (ctx) => {
             await ctx.replyWithHTML('<b>Спасибо за минет 💜</b>')
         })
@@ -153,13 +184,18 @@ const tst = async () => {
         bot.start(async (ctx) => {
             const chatId = ctx.message.chat.id
             const firstName = ctx.message.from.first_name
+
+            state.chatId = chatId 
+            console.log(state.chatId)
+            console.log('state.chatIdstate.chatIdstate.chatId')
+
             try {
                 await ctx.reply('Hey! ' + firstName + ' ' + chatId)
                 console.log("--------->", chatId)
                 console.log("--------->", firstName)
 
-                const isIdUnique = async (chatId) => {
-                    Abra.count({ where: { chatId: chatId } })
+                const isNewUsr = async (chatId) => {
+                    return await Abra.count({ where: { chatId: chatId } })
                         .then(count => {
                             console.log('Count===============>')
                             console.log(count)
@@ -168,7 +204,7 @@ const tst = async () => {
                         });
                 }
 
-                if (isIdUnique(chatId)) {
+                if (isNewUsr(chatId)) {
                     await Abra.create({ chatId: chatId, name: firstName })
                 }
 
@@ -182,121 +218,287 @@ const tst = async () => {
             }
         })
 
-        bot.action('period_10', async (ctx) => {
-            try {
-                const chatId = await ctx.update.callback_query.from.id
-                await ctx.answerCbQuery()
-                console.log('chatIdchatIdchatIdchatIdchatIdchatIdchatIdchatId')
-                console.log(chatId)
-                // await Abra.update({ period: 10 }, { where: { chatId } })
-                drawList(ctx)
-            } catch (e) {
-                console.error(e)
-            }
-        })
+        bot.command('pills', drawList)
 
 
-        bot.action('period_20', async (ctx) => {
-            try {
-                const chatId = await ctx.update.callback_query.from.id
-                await ctx.answerCbQuery()
-                console.log('chatIdchatIdchatIdchatIdchatIdchatIdchatIdchatId')
-                console.log(chatId)
-                // await Abra.update({ period: 20 }, { where: { chatId } })
-                drawList(ctx)
-            } catch (e) {
-                console.error(e)
-            }
-        })
+        // bot.on('message', (ctx) => {
+
+        // })
+        
+
+        // if (state.pillsBtns) {
+        //     state.pillsBtns.forEach((pill, index) => {
+        //         bot.action('btn_1' + `${pill.indx}`, async (ctx) => {
+        //             console.log('a')
+        //             await ctx.answerCbQuery()
+        //             console.log(state.chatId)
+        //         })
+        //         console.log(pill.name)
+        //     })
+        // }
+
+        // bot.action('btn_1' + `${0}`, async (ctx) => {
+        //     console.log('a')
+        //     await ctx.answerCbQuery()
+        //     console.log(state.chatId)
+        // })
+
+        // bot.use(async (ctx) => {
+        //     const chatId = ctx.message?.chat.id || ctx.update.callback_query.from.id
+        //     console.log('::::', chatId)
+        //     state.chatId = chatId
+        //     try {
+        //         // bot.command('pills', drawList)
+
+
+
+
+        //         // pills.forEach(async (pill, index) => {
+        //         //     console.log(pill.name)
+        //         //     bot.action('btn_1' + `${index}`, async (ctx) => {
+        //         //         try {
+        //         //             console.log(pill.name)
+        //         //             await ctx.answerCbQuery()
+        //         //             drawList(ctx)
+        //         //         } catch (e) {
+        //         //             console.error(e)
+        //         //         }   
+        //         //     })
+        //         // })
+        //     } catch (e) {
+        //         console.error(e)
+        //     }
+        // })
+
+        // bot.use('message', async (ctx, next) => {
+        //     const chatId = ctx.message?.chat.id || ctx.update.callback_query.from.id
+
+        //     console.log(':::', chatId)
+        //     try {
+        //         bot.command('pills', drawList)
+
+        //         const pills = await Pills.findAll({
+        //             where: { by: chatId }
+        //         })
+
+        //         pills.forEach(async (pill) => {
+        //             bot.action('btn_1' + `${pill.id}`, async (ctx) => {
+        //                 try {
+        //                     console.log(pill.name)
+        //                     await ctx.answerCbQuery()
+        //                     drawList(ctx)
+        //                 } catch (e) {
+        //                     console.error(e)
+        //                 }   
+        //             })
+        //         })
+        //     } catch (e) {
+        //         console.error(e)
+        //     }
+        //     // ctx.telegram.sendMessage(ctx.message.chat.id,
+        //     //   "File content at: " + new Date() + " is: \n" + file
+        //     // )
+        // });
+        
+
+
+        // bot.action('period_10', async (ctx) => {
+        //     try {
+        //         const chatId = await ctx.update.callback_query.from.id
+        //         await ctx.answerCbQuery()
+        //         console.log('chatIdchatIdchatIdchatIdchatIdchatIdchatIdchatId')
+        //         console.log(chatId)
+        //         // await Abra.update({ period: 10 }, { where: { chatId } })
+        //         drawList(ctx)
+        //     } catch (e) {
+        //         console.error(e)
+        //     }
+        // })
+
+
+        // bot.action('period_20', async (ctx) => {
+        //     try {
+        //         const chatId = await ctx.update.callback_query.from.id
+        //         await ctx.answerCbQuery()
+        //         console.log('chatIdchatIdchatIdchatIdchatIdchatIdchatIdchatId')
+        //         console.log(chatId)
+        //         // await Abra.update({ period: 20 }, { where: { chatId } })
+        //         drawList(ctx)
+        //     } catch (e) {
+        //         console.error(e)
+        //     }
+        // })
 
 
         bot.help(async (ctx) => await ctx.reply(text.commands))
 
-        bot.command('pills', drawList)
 
-        bot.action('🗑️', async (ctx) => {
+        // bot.action('🗑️', async (ctx) => {
+        //     const chatId = ctx.message?.chat.id || ctx.update.callback_query.from.id
+        //     console.log('chatIdchatIdchatId', chatId)
+        //     await ctx.answerCbQuery()
+        //     try {
+        //     await Abra.update({ period: -1 }, { where: { chatId: chatId } })
+        //     } catch (e) {
+        //         console.error(e)
+        //     }
+        //     url_taskMap.forEach(task => task.stop())
+        //     await drawList(ctx)
+        // })
+
+        //         bot.action('🔵', async (ctx) => {
+        //             const chatId = await ctx.message?.chat.id || ctx.update.callback_query.from.id
+        //             const user = await Abra.findOne({ where: { chatId } })
+        //             const period = '*/' + `${user.period}` + ' * * * * *'
+        //             state.number = -1
+
+        //             console.log(period)
+        //             if (url_taskMap[user.period] === undefined) {
+        //                 const task = cron.schedule(period, async () => {
+        //                     ctx.reply('✔️ every ' + `${user.period}` + 'seconds')
+        //                     console.log("Df")
+        //                 });
+        //                 url_taskMap[user.period] = task
+        //                 console.log(user.period)
+        //                 task.start()
+        //             }                   
+        // ///////////////////////////////////////////
+        //             // const personalPeriod = { period: user.name === 'Andrew' ? 10 : 5, name: user.name }
+        //             // const period = '*/' + `${personalPeriod.period}` + ' * * * * *'
+        //             // /////////////////////////////////////////
+        //             // if (url_taskMap[personalPeriod.period] === undefined) {
+        //             //     const task = cron.schedule(period, async () => {
+        //             //         ctx.reply('Hey! ' + personalPeriod.name + ' ' + personalPeriod.period)
+        //             //     });
+        //             //     url_taskMap[user.period] = task
+        //             //     console.log(user.period)
+        //             //     task.start()
+        //             // }
+        //             /////////////////////////////////////////
+        // ///////////////////////////////////////////
+        //         })
+
+
+
+
+        // names.forEach(async (_, index) => {
+        //     bot.action('btn_1' + `${index}`, async (ctx) => {
+        //         try {
+        //             rmName(names, index)
+        //             await ctx.answerCbQuery()
+        //             console.log(names)
+        //             drawList(ctx)
+        //         } catch (e) {
+        //             console.error(e)
+        //         }   
+        //     })
+        // })
+
+
+        // bot.hears(/.[1-9]+/, ctx => {
+        //     console.log(ctx.message.text)
+        //     const text = ctx.message.text.substring(1)
+
+        //     console.log(text)
+        //     state.number = parseInt(text)
+        //     // state.period = parseInt(text)
+
+        //     drawList(ctx)
+        // })
+
+
+        bot.hears(/^\.[\s\S]*$/, ctx => {
+            console.log(ctx.message.text)
+            
+            if (ctx.message.text.at(0) === '.') {
+                const text = ctx.message.text.substring(1)
+
+                console.log(text)
+                state.name = text
+            } else {
+                state.name = ''
+            }
+
+            // state.number = parseInt(text)
+            // state.period = parseInt(text)
+
+            drawList(ctx)
+        })
+
+        ////Hears .name + draw
+
+        bot.action('new', async (ctx) => {
             const chatId = ctx.message?.chat.id || ctx.update.callback_query.from.id
-            console.log('chatIdchatIdchatId', chatId)
-            await ctx.answerCbQuery()
+            const name = state.name
+            state.name = ''
+            const pillPeriod = -1
             try {
-            await Abra.update({ period: -1 }, { where: { chatId: chatId } })
+                await ctx.answerCbQuery()
+                console.log('............', name)
+                //Add in pills
+                const isNewUsrPill = async () => {
+                    return await Pills.count({ where: {  by: chatId, name: name } })
+                        .then(count => {
+                            console.log('CountPills===============>')
+                            console.log(count)
+                            return count === 0 ? true : false
+                            // потому что по-другому не работает!
+                        });
+                }
+
+                console.log('LLLLLLLLLLLLLLLLLLLLLLLLLLL,')
+                console.log(await isNewUsrPill())
+
+
+                if (await isNewUsrPill() === true && name.length > 0) {
+                    console.log('LLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLL')
+                    console.log(await isNewUsrPill())
+                    await Pills.create({
+                        by: chatId,
+                        name: name,
+                        period: pillPeriod
+                    })
+                }
+
+
+                // await Abra.update({ period: state.number }, { where: { chatId } })
+                await drawList(ctx)
             } catch (e) {
                 console.error(e)
             }
-            url_taskMap.forEach(task => task.stop())
-            await drawList(ctx)
-        })
-
-        bot.action('🔵', async (ctx) => {
-            const chatId = await ctx.message?.chat.id || ctx.update.callback_query.from.id
-            const user = await Abra.findOne({ where: { chatId } })
-            const period = '*/' + `${user.period}` + ' * * * * *'
-            state.number = -1
-
-            console.log(period)
-            if (url_taskMap[user.period] === undefined) {
-                const task = cron.schedule(period, async () => {
-                    ctx.reply('✔️ every ' + `${user.period}` + 'seconds')
-                    console.log("Df")
-                });
-                url_taskMap[user.period] = task
-                console.log(user.period)
-                task.start()
-            }                   
-///////////////////////////////////////////
-            // const personalPeriod = { period: user.name === 'Andrew' ? 10 : 5, name: user.name }
-            // const period = '*/' + `${personalPeriod.period}` + ' * * * * *'
-            // /////////////////////////////////////////
-            // if (url_taskMap[personalPeriod.period] === undefined) {
-            //     const task = cron.schedule(period, async () => {
-            //         ctx.reply('Hey! ' + personalPeriod.name + ' ' + personalPeriod.period)
-            //     });
-            //     url_taskMap[user.period] = task
-            //     console.log(user.period)
-            //     task.start()
-            // }
-            /////////////////////////////////////////
-///////////////////////////////////////////
         })
 
         names.forEach(async (_, index) => {
             bot.action('btn_1' + `${index}`, async (ctx) => {
-                try {
-                    rmName(names, index)
-                    await ctx.answerCbQuery()
-                    console.log(names)
-                    drawList(ctx)
-                } catch (e) {
-                    console.error(e)
-                }   
+                const chatId = ctx.message?.chat.id || ctx.update.callback_query.from.id
+                console.log('l')
+                const pills = await Pills.findAll({ 
+                    where: { 
+                        by: chatId,
+                        name: map['btn_1' + `${index}`].name,
+                    } 
+                })
+                pills.forEach(async (pill) => await Pills.destroy({
+                    where: {
+                        id: pill.id
+                    }
+                }))
+                // console.log(pills)
+                // await Pills.destroy(pills)
+                await drawList(ctx)  
+                
             })
         })
-
-
-        bot.hears(/.[1-9]+/, ctx => {
-            console.log(ctx.message.text)
-            const text = ctx.message.text.substring(1)
-
-            console.log(text)
-            state.number = parseInt(text)
-            drawList(ctx)
-        })
-
-        bot.action('new', async (ctx) => {
-            const chatId = ctx.message?.chat.id || ctx.update.callback_query.from.id
-            try {
-                ctx.answerCbQuery()
-                
-                  console.log('............',state.number)
-                // const period = _
-                await Abra.update({ period: state.number }, { where: { chatId } })
-                // addName(names, `${'~'}`)
-                drawList(ctx)
-            } catch (e) {
-                console.error(e)
-            }
-        })
-
+        // btns.forEach( (btn) => {
+            // console.log(btn)
+            // bot.action('btn_10', async (ctx) => {
+                // console.log("l")
+                    // rmName(names, index)
+                    // await ctx.answerCbQuery()
+                    // console.log(names)
+                    // await drawList(ctx)  
+            // })
+        // })
 
 
     } catch (e) {
