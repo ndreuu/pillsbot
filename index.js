@@ -167,19 +167,20 @@ const tst = async () => {
                     }
                 })
 
-                pills.forEach((pill) => {
-                    // '*/10 * * * * *'
-                    const task = cron.schedule('*/10 * * * * *', async () => {
-                        ctx.reply('✔️ ' + `${pill.name}`)
-                        console.log("Df")
-                    });
-                    // if (!url_taskMap[[chatId, pill.name]]) {
-                    if (!url_taskMap.has(`${chatId}` + pill.name)) {
-                        // url_taskMap[[chatId, pill.name]] = task
-                        url_taskMap.set(`${chatId}` + pill.name, task)
-                        task.start()
-                    }
-                })
+                // pills.forEach((pill) => {
+                //     // '*/10 * * * * *'
+                //     const task = cron.schedule('*/10 * * * * *', async () => {
+                //         //добавляем по времени pill
+                //         ctx.reply('✔️ ' + `${pill.name}`)
+                //         console.log("Df")
+                //     });
+                //     // if (!url_taskMap[[chatId, pill.name]]) {
+                //     if (!url_taskMap.has(`${chatId}` + pill.name)) {
+                //         // url_taskMap[[chatId, pill.name]] = task
+                //         url_taskMap.set(`${chatId}` + pill.name, task)
+                //         task.start()
+                //     }
+                // })
 
             } catch (e) {
                 console.error(e)
@@ -333,30 +334,38 @@ const tst = async () => {
             const chatId = ctx.message?.chat.id || ctx.update.callback_query.from.id
             const name = state.name
             const comment = state.comment ? '\n' + state.comment : null
-            const times = state.times
-            const timesCron = state.times
-                ? state.times.reduce((acc, time) =>
-                    //40 19 * * *
-                    acc.push(`${time.minute}` + ' ' + `${time.hour}` + ' * * *'), [])
-                : null
+            // const times = state.times
+            // console.log('LLLLLLLLLLLLLLLLLLLLLLLLLLLLL')
+            // state.times.forEach((v) => console.log(v.hour))
+            const timesCron = []
+            // state.times 
+            //     ? state.times.reduce((acc, time) =>
+            //         //40 19 * * *
+            //         acc.push({v: `${time.minute}` + ' ' + `${time.hour}` + ' * * *'}), []) 
+            //     : []
+            if (state.times) {
+                state.times.forEach((time) => {
+                    timesCron.push(`${time.minute}` + ' ' + `${time.hour}` + ' * * *')
+                })
+            }
+
+            console.log(';;;;;;;;;;;', timesCron)
+            console.log(';;;;;;;;;;;', state.times)
 
             state.name = null
             state.times = null
             state.comment = null
 
-            const tst = new Map()
-            const inside = new Map()
-            inside.set('alex', 10)
-            inside.set('john', 13)
-            tst.set('xyn big', inside)
-            console.log('>>>>>>>>TST', tst) 
-            console.log('>>>>>>>>TST', tst.get('xyn big')) 
-            tst.get('xyn big').forEach((v) =>
-                console.log('>>>>>>>>TST', v))
+            // const tst = new Map()
+            // const inside = new Map()
+            // inside.set('alex', 10)
+            // inside.set('john', 13)
+            // tst.set('xyn big', inside)
+            // console.log('>>>>>>>>TST', tst) 
+            // console.log('>>>>>>>>TST', tst.get('xyn big')) 
+            // tst.get('xyn big').forEach((v) =>
+            //     console.log('>>>>>>>>TST', v))
 
-            // console.log('>>>>>>>>TST', tst[['xyn','big']]['alex']) 
-            // console.log('>>>>>>>>TST', tst[['xyn','big']])
-            // tst[['xyn','big']].forEach(v => console.log(v)) 
 
             try {
                 console.log('............', name)
@@ -368,24 +377,79 @@ const tst = async () => {
                         });
                 }
 
-                if (await isNewUsrPill() && name.length > 0) {
-                    await Pills.create({
-                        by: chatId,
-                        name: name,
-                        // period: pillPeriod
-                    })
-                    //*/10 * * * * * 40 19 * * *
-                    const task = cron.schedule('*/10 * * * * *', async () => {
-                        ctx.reply('✔️ ' + `${name}`)
-                        console.log("Notify: ", name)
-                    });
 
-                    // if (url_taskMap[[chatId, name]] === undefined) {
-                    if (!url_taskMap.has(`${chatId}` + name)) {
-                        url_taskMap.set(`${chatId}` + name, task)
-                        task.start()
+                if (await isNewUsrPill() && name.length > 0) {
+                    //foreach timescron
+                    if (timesCron.length > 0) {
+                        timesCron.forEach(async (time) => {
+                            await Pills.create({
+                                by: chatId,
+                                name: name,
+                                cronTime: time
+                                // period: pillPeriod
+                            })
+
+                            //*/10 * * * * * 40 19 * * *
+                            const task = cron.schedule(time, async () => {
+                                ctx.replyWithHTML('<b>' + '✔️ ' + `${name}` + ' ' + comment + '</b>')
+                                // ctx.reply('✔️ ' + `${name}` + ' ' + comment)
+                                //comment
+                                console.log("Notify: ", name + ' ' + comment)
+                            });
+
+                            // if (url_taskMap[[chatId, name]] === undefined) {
+                            //!url_taskMap.has(`${chatId}` + name).has(time)
+                            if (!url_taskMap.has(`${chatId}` + name)) {
+                                url_taskMap.set(`${chatId}` + name, new Map())
+                                // url_taskMap.get(`${chatId}` + name).has(time)
+                                url_taskMap.get(`${chatId}` + name).set(time, task)
+                                task.start()
+                            }
+                        })
+                    } else {
+                        await Pills.create({
+                            by: chatId,
+                            name: name,
+                            cronTime: 'Missing'
+                            // period: pillPeriod
+                        })
                     }
+
+
+
                 }
+
+
+                // console.log('............', name)
+                // const isNewUsrPill = async () => {
+                //     return await Pills.count({ where: { by: chatId, name: name } })
+                //         .then(count => {
+                //             return count === 0 ? true : false
+                //             // потому что по-другому не работает!
+                //         });
+                // }
+
+                // if (await isNewUsrPill() && name.length > 0) {
+                //     //foreach timescron
+                //     await Pills.create({
+                //         by: chatId,
+                //         name: name,
+                //         // period: pillPeriod
+                //     })
+                //     //*/10 * * * * * 40 19 * * *
+                //     const task = cron.schedule('*/10 * * * * *', async () => {
+                //         ctx.reply('✔️ ' + `${name}`)
+                //         //comment
+                //         console.log("Notify: ", name)
+                //     });
+
+                //     // if (url_taskMap[[chatId, name]] === undefined) {
+                //         //!url_taskMap.has(`${chatId}` + name).has(time)
+                //     if (!url_taskMap.has(`${chatId}` + name)) {
+                //         url_taskMap.set(`${chatId}` + name, task)
+                //         task.start()
+                //     }
+                // }
 
 
                 await ctx.answerCbQuery()
@@ -406,7 +470,12 @@ const tst = async () => {
                 })
 
                 pills.forEach(async (pill) => {
-                    await url_taskMap.get(`${chatId}` + pill.name).stop()
+                    if (pill.time !== 'Missing') {
+                        url_taskMap.get(`${chatId}` + pill.name)?.forEach((task) => task.stop())
+                        url_taskMap.delete(`${chatId}` + pill.name)
+                    }
+                    // url_taskMap.get(`${chatId}` + pill.name).stop()
+                    
                     // await url_taskMap[[chatId, pill.name]].stop()
                     await Pills.destroy({
                         where: {
@@ -414,7 +483,9 @@ const tst = async () => {
                         }
                     })
                 })
-
+                console.log("urlurlurlurlurlurl")
+                console.log(url_taskMap)
+                // url_taskMap.forEach((url) => console.log(url))
                 await ctx.answerCbQuery()
 
                 await drawList(ctx)
@@ -430,7 +501,7 @@ const tst = async () => {
 
 tst()
 
-const url_taskMap = new Map() 
+const url_taskMap = new Map()
 // [];
 
 bot.launch()
