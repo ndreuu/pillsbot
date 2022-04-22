@@ -14,13 +14,14 @@ const EMPTY_GAP = [-1]
 
 const bot = new Telegraf(process.env.BOT_TOKEN)
 
+
 const sequelize = new Sequelize(
     {
-        host: "ec2-18-203-64-130.eu-west-1.compute.amazonaws.com",
-        database: "d4ms0rdbf8h9kb",
-        username: "dpmjuqvjvczawc",
+        host: "ec2-63-32-248-14.eu-west-1.compute.amazonaws.com",
+        database: "d5n734mokeck24",
+        username: "hzhrtdqhxpqwld",
         port: 5432,
-        password: "6aac55dd6a6ce7c5fa568302963b97df4d8d20e501151ec46d09fb0c5d2c3933",
+        password: "987cc5ba364ec550315f959d44aeb8b05a919d96196d874bd1b74e7726e53939",
         dialect: "postgres",
         dialectOptions: {
             ssl: {
@@ -132,14 +133,6 @@ const tst = async () => {
             await ctx.reply(`${user.name}`)
         })
 
-        bot.command('Rips', async (ctx) => {
-            await ctx.replyWithHTML('<b>Спасибо за минет 💜</b>')
-        })
-
-        bot.command('Artem', async (ctx) => {
-            await ctx.replyWithHTML('<b>Артём — бычок,\nРваный башмачок,\nНа мусорке валяется,\nДа ещё ругается!\n\nРаунд</b>')
-        })
-
         bot.start(async (ctx) => {
             const chatId = ctx.message.chat.id
             const firstName = ctx.message.from.first_name
@@ -179,7 +172,7 @@ const tst = async () => {
                             url_taskMap.set(`${chatId}` + pill.name, new Map())
                             // url_taskMap.get(`${chatId}` + name).has(time)
                             const task = await cron.schedule(pill.cronTime, async () => {
-                                ctx.replyWithHTML('<b>' + '✔️ ' + `${pill.name}` + ' ' + (pill.comment ? pill.comment : '') + '</b>')
+                                ctx.replyWithHTML('<b>' + '✔️ ' + `${pill.name}` + '\n' + (pill.comment ? pill.comment : '') + '</b>')
                                 // ctx.reply('✔️ ' + `${name}` + ' ' + comment)
                                 //comment
                                 console.log("Notify: ", pill.name + ' ' + pill.comment)
@@ -189,7 +182,7 @@ const tst = async () => {
                             // task.start()
                         } else if (!url_taskMap.get(`${chatId}` + pill.name).has(pill.cronTime)) {
                             const task = await cron.schedule(pill.cronTime, async () => {
-                                ctx.replyWithHTML('<b>' + '✔️ ' + `${pill.name}` + ' ' + (pill.comment ? pill.comment : '') + '</b>')
+                                ctx.replyWithHTML('<b>' + '✔️ ' + `${pill.name}` + '\n' + (pill.comment ? pill.comment : '') + '</b>')
                                 // ctx.reply('✔️ ' + `${name}` + ' ' + comment)
                                 //comment
                                 console.log("Notify: ", pill.name + ' ' + pill.comment)
@@ -261,6 +254,19 @@ const tst = async () => {
                     yield nullify(whiteSpaces);
 
                     const _name = yield Parser.possibly(name);
+                                        yield (Parser.possibly(Parser.sequenceOf([
+                        Parser.char('\n'),
+                        nullify(whiteSpaces)
+                    ]))
+                    )
+
+                    const comment = yield (Parser.possibly(
+                        Parser.sequenceOf([
+                            nullify(Parser.char(':')),
+                            Parser.many(Parser.anyCharExcept(Parser.char('\n')))
+                        ])
+                    ))
+                    
                     yield (
                         Parser.possibly(Parser.sequenceOf([
                             Parser.char('\n'),
@@ -279,18 +285,7 @@ const tst = async () => {
                         ))
                     ]));
 
-                    yield (Parser.possibly(Parser.sequenceOf([
-                        Parser.char('\n'),
-                        nullify(whiteSpaces)
-                    ]))
-                    )
 
-                    const comment = yield (Parser.possibly(
-                        Parser.sequenceOf([
-                            nullify(Parser.char(':')),
-                            Parser.many(Parser.anyCharExcept(Parser.char('\n')))
-                        ])
-                    ))
 
                     console.log('AAAAAAAAAAAAAAAAAAA')
 
@@ -381,7 +376,7 @@ const tst = async () => {
 
                             //*/10 * * * * * 40 19 * * *
                             const task = cron.schedule(time, async () => {
-                                ctx.replyWithHTML('<b>' + '✔️ ' + `${newName}` + ' ' + (newComment ? newComment : '') + '</b>')
+                                ctx.replyWithHTML('<b>' + '✔️ ' + `${newName}` + '\n' + (newComment ? newComment : '') + '</b>')
                                 console.log("Notify: ", newName + ' ' + newComment)
                             });
 
@@ -482,7 +477,7 @@ const tst = async () => {
 
                             //*/10 * * * * * 40 19 * * *
                             const task = cron.schedule(time, async () => {
-                                ctx.replyWithHTML('<b>' + '✔️ ' + `${name}` + ' ' + (comment ? comment : '') + '</b>')
+                                ctx.replyWithHTML('<b>' + '✔️ ' + `${name}` + '\n' + (comment ? comment : '') + '</b>')
                                 console.log("Notify: ", name + ' ' + comment)
                             });
 
@@ -560,9 +555,8 @@ const tst = async () => {
                 })
 
                 await ctx.replyWithHTML(
-                    '<b> ' + pills[0].name + ' </b>\n\n' +
-                    mystring.join('\n') +
-                    (pills[0].comment ? '\n\n' + pills[0].comment : '')
+                    '<b> ' + pills[0].name + ' </b>\n' +
+                    (pills[0].comment ? pills[0].comment : '') + '\n\n' + mystring.join('\n')
                 )
                 state.curPills = pills
             }
